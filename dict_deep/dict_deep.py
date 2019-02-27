@@ -34,8 +34,26 @@ def deep_set(d: dict, key, value, default: callable = None, sep: str = '.'):
     else:
         keys = list(key)
     
-    _d = d
     for i in range(len(keys) - 1):
         d = d[keys[i]] if default is None else d.setdefault(keys[i], default())
     
     d[keys[-1]] = value
+
+
+def deep_del(d: dict, key, sep: str = '.'):
+    if isinstance(key, str):
+        keys = key.split(sep=sep)
+    else:
+        keys = list(key)
+    
+    for i in range(len(keys) - 1):
+        if d is None:
+            return False, None
+        d = d.get(keys[i], None)
+    
+    if d is not None and isinstance(d, dict) and keys[-1] in d:
+        retval = d[keys[-1]]
+        del d[keys[-1]]
+        return True, retval
+    else:
+        return False, None
