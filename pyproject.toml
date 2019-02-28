@@ -7,7 +7,7 @@ license = "CC0-1.0"
 readme = "README.md"
 repository = "https://github.com/mbello/dict-deep"
 homepage = "https://github.com/mbello/dict-deep"
-keywords = ['dict dotted keys', 'deep dict access', 'nested dict access']
+keywords = ['dict dotted keys', 'deep dict access', 'nested dict access', 'deep_get', 'deep_set', 'deep_del']
 
 
 

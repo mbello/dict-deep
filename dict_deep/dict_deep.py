@@ -1,59 +1,63 @@
-METHOD_DEFAULT = 0
-METHOD_ATTR = 1
-METHOD_GET = 2
-METHOD_SETDEFAULT = 3
 
 
-def deep_get(d: dict, key, access_method: int = METHOD_DEFAULT, default: callable = None, sep: str = '.', ):
-    if access_method == METHOD_DEFAULT:
-        access_method = METHOD_ATTR if default is None else METHOD_SETDEFAULT
-
-    if isinstance(key, str):
-        keys = key.split(sep=sep)
-    else:
-        keys = list(key)
+def deep_get(d, key, default: callable = None, getter: callable = None, sep: str = '.'):
+    getter = __getter(getter, default)
+    keys = __keys(key, sep)
     
-    if access_method == METHOD_ATTR:
-        for k in keys:
-            d = d[k]
-    elif access_method == METHOD_GET:
-        for k in keys:
-            d = d.get(k, default())
-    elif access_method == METHOD_SETDEFAULT:
-        for k in keys:
-            d = d.setdefault(k, default())
-    else:
-        raise ValueError('deep_get: invalid access method, use one of METHOD_ATTR, METHOD_GET or METHOD_SETDEFAULT')
+    for k in keys:
+        d = getter(d, k)
     
     return d
 
 
-def deep_set(d: dict, key, value, default: callable = None, sep: str = '.'):
-    if isinstance(key, str):
-        keys = key.split(sep=sep)
-    else:
-        keys = list(key)
+def deep_set(d, key, value, default: callable = None, getter: callable = None, setter: callable = None, sep: str = '.'):
+    keys = __keys(key, sep)
+    getter = __getter(getter, default)
+    setter = __setter(setter)
     
     for i in range(len(keys) - 1):
-        d = d[keys[i]] if default is None else d.setdefault(keys[i], default())
+        d = getter(d, keys[i])
     
-    d[keys[-1]] = value
+    setter(d, keys[-1], value)
 
 
-def deep_del(d: dict, key, sep: str = '.'):
-    if isinstance(key, str):
-        keys = key.split(sep=sep)
-    else:
-        keys = list(key)
+def deep_del(d: dict, key, getter: callable = None, deleter: callable = None, sep: str = '.'):
+    keys = __keys(key, sep)
+    getter = getter if getter is not None else lambda o, k: o.get(k)
     
     for i in range(len(keys) - 1):
         if d is None:
             return False, None
-        d = d.get(keys[i], None)
+        d = getter(d, keys[i])
     
     if d is not None and isinstance(d, dict) and keys[-1] in d:
-        retval = d[keys[-1]]
-        del d[keys[-1]]
+        retval = getter(d, keys[-1])
+        if deleter is None:
+            del d[keys[-1]]
+        else:
+            deleter(d, keys[-1])
         return True, retval
     else:
         return False, None
+
+
+def __keys(key, sep: str):
+    if isinstance(key, str):
+        return key.split(sep=sep)
+    else:
+        return list(key)
+
+
+def __getter(getter: callable, default: callable):
+    if getter is not None:
+        return getter
+    elif default is not None:
+        return lambda o, k: o.setdefault(k, default())
+    else:
+        return lambda o, k: o[k]
+
+
+def __setter(setter: callable):
+    def __default_setter(o, k, v):
+        o[k] = v
+    return setter if setter is not None else __default_setter
