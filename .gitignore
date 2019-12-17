@@ -3,7 +3,7 @@ odoorpc*.ini
 odooly*.ini
 credentials.json
 token.pickle
-
+new_release.sh
 tauga*.json
 *.json
 service*.json

@@ -1,45 +1,49 @@
 
 
-def deep_get(d, key, default: callable = None, getter: callable = None, sep: str = '.'):
+def deep_get(o, k, default: callable = None, getter: callable = None, sep: str = '.',
+             empty_list_as_none: bool = False, list_of_len_one_as_value: bool = False):
     getter = __getter(getter, default)
-    keys = __keys(key, sep)
+    keys = __keys(k, sep)
     
     for k in keys:
-        d = getter(d, k)
+        o = getter(o, k)
+
+    if (empty_list_as_none or list_of_len_one_as_value) and isinstance(o, list) and len(o) <= 1:
+        if empty_list_as_none and len(o) == 0:
+            o = None
+        elif list_of_len_one_as_value and len(o) == 1:
+            o = o[0]
     
-    return d
+    return o
 
-
-def deep_set(d, key, value, default: callable = None, getter: callable = None, setter: callable = None, sep: str = '.'):
-    keys = __keys(key, sep)
+def deep_set(o, k, v, default: callable = None, getter: callable = None, setter: callable = None, sep: str = '.'):
+    keys = __keys(k, sep)
     getter = __getter(getter, default)
     setter = __setter(setter)
     
     for i in range(len(keys) - 1):
-        d = getter(d, keys[i])
+        o = getter(o, keys[i])
     
-    setter(d, keys[-1], value)
+    setter(o, keys[-1], v)
 
-
-def deep_del(d: dict, key, getter: callable = None, deleter: callable = None, sep: str = '.'):
-    keys = __keys(key, sep)
+def deep_del(o: dict, k, getter: callable = None, deleter: callable = None, sep: str = '.'):
+    keys = __keys(k, sep)
     getter = getter if getter is not None else lambda o, k: o.get(k)
     
     for i in range(len(keys) - 1):
-        if d is None:
+        if o is None:
             return False, None
-        d = getter(d, keys[i])
+        o = getter(o, keys[i])
     
-    if d is not None and isinstance(d, dict) and keys[-1] in d:
-        retval = getter(d, keys[-1])
+    if o is not None and isinstance(o, dict) and keys[-1] in o:
+        retval = getter(o, keys[-1])
         if deleter is None:
-            del d[keys[-1]]
+            del o[keys[-1]]
         else:
-            deleter(d, keys[-1])
+            deleter(o, keys[-1])
         return True, retval
     else:
         return False, None
-
 
 def __keys(key, sep: str):
     if isinstance(key, str):
@@ -47,15 +51,21 @@ def __keys(key, sep: str):
     else:
         return list(key)
 
-
 def __getter(getter: callable, default: callable):
     if getter is not None:
         return getter
-    elif default is not None:
-        return lambda o, k: o.setdefault(k, default())
-    else:
-        return lambda o, k: o[k]
-
+    if default is None:
+        default = lambda o, k: o.get(k)
+    
+    def __default_getter(o, k):
+        if isinstance(o, list) and isinstance(k, str):
+            r = []
+            for i in o:
+                r.append(default(i, k))
+            return r
+        return default(o, k)
+    
+    return __default_getter
 
 def __setter(setter: callable):
     def __default_setter(o, k, v):

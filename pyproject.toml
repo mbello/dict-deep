@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dict-deep"
-version = "2.0.2"
+version = "3.0.1"
 authors = ["mbello <mbello@users.noreply.github.com>"]
 description = "Very simple deep_set and deep_get functions to access nested dicts (or any object) using 'dotted strings' as key."
 license = "CC0-1.0"
