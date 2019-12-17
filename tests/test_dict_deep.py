@@ -1,4 +1,4 @@
-from dict_deep import deep_get, deep_set, deep_del
+from ../dict_deep import deep_get, deep_set, deep_del
 
 i = 0
 
