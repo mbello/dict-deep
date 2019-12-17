@@ -3,45 +3,75 @@
 Simple functions to set or get values from a nested dict structure or in fact a deep structure of any object, because
 since version 2 we no longer assume we are dealing with dicts.
 
-Although we make your life easier if working with dicts (see the default argument that was left for this purpose),
-we now let you use custom getter, setter, deleter callables so that you can traverse a nested structure of any kind of 
+You may use a custom accessor or pass your own getter, setter, deleter callables so that you can traverse a nested structure of any kind of 
 object.
 
 This module DOES NOT implement dotted notation as an alternative access method for dicts.
 I generally do not like changing python dicts to enable dot notation, hence no available
 package fitted my needs for a simple deep accessor.
 
+Notes:
+Often, you could use 'lambda o, k: o[k]' as either the getter or the accessor. The only 'special' thing about the 'getter' function is that when it is
+invoked with 'o' being a list and 'k' being a string, it will instead iterate over the list and call the accessor for each item in the list.
+
+In a simplified way, this is how it works:
+
+1. The key is broken down into a list: "customer.address.city" -> ['customer', 'address', 'city'] 
+
+2. The keys list is iterated over calling the getter n times and the last value retrieved is returned.
+======================
+for key in keys:
+   o = getter(o, key)
+
+return o
+======================
+
+You see that getter could be as simple as 'lambda o, k: o[k]'. However, by default the code uses a smarter getter as defined below,
+which tries to deal properly with lists.
+
+def default_getter(o, k):
+    if isinstance(o, list):
+        if isinstance(k, str) and not k.isdigit():
+            r = []
+            for i in o:
+                r.append(accessor(i, k))
+            return r
+        elif isinstance(k, str) and k.isdigit():
+            k = int(k)
+    
+    return accessor(o, k)
+
 
 ## Functions
 
 *deep_get* accepts:
-- d: required. Any object, usually a dictionary.
-- key: required. A string or anything accepted by the list() constructor.
-- default: optional, callable: a callable to be used as default for the dict .setdefault function. If d is not a dict, use a custom getter instead.
-- getter: optional, callable. If getter is set, default is ignored. Must be a callable that accepts an object and a key as arguments. (ex. lambda o, k: o[k])
+- o: required. Any object, usually a dictionary
+- k: required. The key or keys, must be a string or anything accepted by the list() constructor
+- accessor: optional, callable: Takes o, k (object and key) and returns the value. Default accessor is 'lambda: o, k: o[k]'
+- getter: optional, callable. If getter is set, default is ignored. Takes an object and a key as arguments and returns a value
 - sep: optional, string: by default it is a dot '.', you can use anything the string function split will accept
 
-Returns the value corresponding to 'key' on 'd'
+Returns o[k]
 
 
 *deep_set* accepts:
-- d: same as above
-- key: same as above
-- value: required, self explanatory
-- default: optional, callable: If set, will use setdefault to traverse the nested dict structure. See comments from deep_get.
-- getter: same as above.
-- setter: optional, callable. A callable that takes 3 parameters: o, k, v - where o = any object, k = key, v = value  
-- sep: same as above
+- o: see 'deep_get'
+- k: see 'deep_get'
+- v: required, the value that will be set
+- accessor: optional, callable: see 'deep_get'
+- getter: optional, callable: see 'deep_get'
+- setter: optional, callable. A callable that takes 3 parameters: o, k, v - where o = any object, k = key, v = value
+- sep: optional, string: see 'deep_get'
 
 No return value
 
 
 *deep_del* accepts:
-- d: same as above
-- key: same as above
-- sep: same as above
-- getter: same as above. However, make your getter return None if you want to avoid exceptions being raised.
-- deleter: optional callable: A callable that takes 2 parameters: o, k (object and key). By default we call 'del o[k]'
+- o: required: see 'deep_get'
+- k: required: see 'deep_get'
+- sep: optional, string: see 'deep_get'
+- accessor: optional, callable: see 'deep_get'
+- deleter: optional, callable: Takes 2 parameters: o, k (object and key). By default 'del o[k]' is used.
 
 Returns a tuple:
 (True, <value of the entry that was deleted>) or
@@ -50,54 +80,46 @@ Returns a tuple:
 
 ## Usage
 
-    from dict_deep import deep_get, deep_set, deep_del
-    
-    
-    i = 1
-    
-    
-    # Alternative 1
-    d = {'a': {'b': {}}}
-    deep_set(d, "a.b.c", "Hello World")
-    print("{}: {}".format(i, deep_get(d, "a.b.c")))
-    i += 1
+i = 0
 
+# Alternative 1
+i += 1
+o = {'a': {'b': {}}}
+deep_set(o, "a.b.c", "Hello World")
+print("{}: {}".format(i, deep_get(o, "a.b.c")))
 
-    # Alternative 2
-    d = {}
-    deep_set(d, ['a', 'b', 'c'], "Hello World", default=lambda: dict())
-    print("{}: {}".format(i, deep_get(d, "a.b.c")))    
-    i += 1
-    
-    
-    # Alternative 3
-    d = {}
-    deep_set(d, "a->b->c", "Hello World", default=lambda: dict(), sep="->")
-    print("{}: {}".format(i, deep_get(d, "a->b->c", sep="->")))
-    i += 1
-    
-    
-    # Alternative 4
-    d = {}
-    deep_set(d, "a->b->c", "Hello World", getter=lambda o, k: o.setdefault(k, dict()), sep="->")
-    print("{}: {}".format(i, deep_get(d, "a->b->c", sep="->")))
-    i += 1
-    
-    
-    # Alternative 5
-    d = {}
-    keys = 'a.b.c'
-    keys = keys.split()
-    _ = deep_get(d=d, key=keys[0:-1], default=lambda: dict(), sep=".")
-    _[keys[-1]] = "Hello World"
-    print("{}: {}".format(i, deep_get(d, keys)))
-    i += 1
-    
-    
-    # deep_del
-    d = {}
-    deep_set(d, "1.1.1", 'a', default=lambda: dict())
-    deep_set(d, "1.1.2", 'Hello World')
-    deep_set(d, "1.1.3", 'c')
-    print("{}: {}".format(i, deep_del(d, "1.1.2")[1]))
-    print(d)
+# Alternative 2
+i += 1
+o = {}
+deep_set(o, ['a', 'b', 'c'], "Hello World", accessor=lambda o, k: o.setdefault(k, dict()))
+print("{}: {}".format(i, deep_get(o, "a.b.c")))
+
+# Alternative 3
+i += 1
+o = {}
+deep_set(o, "a->b->c", "Hello World", accessor=lambda o, k: o.setdefault(k, dict()), sep="->")
+print("{}: {}".format(i, deep_get(o, "a->b->c", sep="->")))
+
+# Alternative 4
+i += 1
+o = {}
+deep_set(o, "a->b->c", "Hello World", getter=lambda o, k: o.setdefault(k, dict()), sep="->")
+print("{}: {}".format(i, deep_get(o, "a->b->c", sep="->")))
+
+# Alternative 5
+i += 1
+o = {}
+keys = 'a.b.c'
+keys = keys.split()
+_ = deep_get(o=o, k=keys[0:-1], accessor=lambda o, k: o.setdefault(k, dict()), sep=".")
+_[keys[-1]] = "Hello World"
+print("{}: {}".format(i, deep_get(o, keys)))
+
+# deep_del
+i += 1
+o = {}
+deep_set(o, "1.1.1", 'a', accessor=lambda o, k: o.setdefault(k, dict()))
+deep_set(o, "1.1.2", 'Hello World')
+deep_set(o, "1.1.3", 'c')
+print("{}: {}".format(i, deep_del(o, "1.1.2")[1]))
+print(o)

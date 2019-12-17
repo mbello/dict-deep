@@ -59,14 +59,18 @@ def __getter(getter: callable, accessor: callable):
     if getter is not None:
         return getter
     if accessor is None:
-        accessor = lambda o, k: o.get(k)
+        accessor = lambda o, k: o[k]
     
     def __default_getter(o, k):
-        if isinstance(o, list) and isinstance(k, str):
-            r = []
-            for i in o:
-                r.append(accessor(i, k))
-            return r
+        if isinstance(o, list):
+            if isinstance(k, str) and not k.isdigit():
+                r = []
+                for i in o:
+                    r.append(accessor(i, k))
+                return r
+            elif isinstance(k, str) and k.isdigit():
+                k = int(k)
+                return accessor(o, k)
         return accessor(o, k)
     
     return __default_getter
@@ -74,5 +78,12 @@ def __getter(getter: callable, accessor: callable):
 
 def __setter(setter: callable):
     def __default_setter(o, k, v):
+        if isinstance(o, list) and not k.isdigit():
+            for i in o:
+                o[k] = v
+        elif isinstance(o, list) and k.isdigit():
+            k = int(k)
         o[k] = v
+
     return setter if setter is not None else __default_setter
+
