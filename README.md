@@ -16,19 +16,20 @@ invoked with 'o' being a list and 'k' being a string, it will instead iterate ov
 
 In a simplified way, this is how it works:
 
-1. The key is broken down into a list: "customer.address.city" -> ['customer', 'address', 'city'] 
+1. The key is broken down into a list of keys: "customer.address.city" -> ['customer', 'address', 'city'] 
 
-2. The keys list is iterated over calling the getter n times and the last value retrieved is returned.
-======================
-for key in keys:
-   o = getter(o, key)
+2. The list of keys is iterated over calling the getter for each key and the last value retrieved is returned.
+```
+for k in keys:
+   o = getter(o, k)
 
 return o
-======================
+```
 
 You see that getter could be as simple as 'lambda o, k: o[k]'. However, by default the code uses a smarter getter as defined below,
 which tries to deal properly with lists.
 
+```
 def default_getter(o, k):
     if isinstance(o, list):
         if isinstance(k, str) and not k.isdigit():
@@ -40,7 +41,7 @@ def default_getter(o, k):
             k = int(k)
     
     return accessor(o, k)
-
+```
 
 ## Functions
 
@@ -80,6 +81,7 @@ Returns a tuple:
 
 ## Usage
 
+```
 i = 0
 
 # Alternative 1
@@ -123,3 +125,4 @@ deep_set(o, "1.1.2", 'Hello World')
 deep_set(o, "1.1.3", 'c')
 print("{}: {}".format(i, deep_del(o, "1.1.2")[1]))
 print(o)
+```
