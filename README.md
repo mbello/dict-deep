@@ -18,8 +18,8 @@ accessor or a getter.
 
 Notes:
 With deep_get, you could use 'lambda o, k: o[k]' or 'lambda o, k: o.get(k)' as either the getter or the accessor.
-The only 'special' thing about the 'getter' function is that when it is invoked with 'o' being a list and 'k' being a
-string, it will instead iterate over the list and call the accessor for each item in the list.
+The only 'special' thing about the 'getter' function is that when it is invoked with 'o' being a list, it will instead
+iterate over the list and call the accessor for each item in the list.
 
 In a simplified way, this is how deep_get works:
 
@@ -32,7 +32,7 @@ for k in keys[:-1]:
         return o
     o = getter(o, k)
 
-    o = getter_last_step(o, k[-1])
+o = getter_last_step(o, keys[-1])
 
 return o
 ```
