@@ -1,51 +1,55 @@
 
 
-def deep_get(o, k, accessor: callable = None, getter: callable = None, sep: str = '.',
+def deep_get(o, k, accessor: callable = lambda o, k: o.get(k) if hasattr(o, "get") else o[k],
+             getter: callable = None, getter_last_step: callable = None, sep: str = '.',
              empty_list_as_none: bool = False, list_of_len_one_as_value: bool = False):
-    getter = __getter(getter, accessor)
     keys = __keys(k, sep)
+    getter = __getter(getter, accessor)
+    getter_last_step = __getter_last_step(getter_last_step, getter)
     
-    for k in keys:
-        o = getter(o, k)
+    for i in range(len(keys) - 1):
+        if o is None:
+            return 0
+        o = getter(o, keys[i])
 
-    if (empty_list_as_none or list_of_len_one_as_value) and isinstance(o, list) and len(o) <= 1:
-        if empty_list_as_none and len(o) == 0:
-            o = None
-        elif list_of_len_one_as_value and len(o) == 1:
-            o = o[0]
+    if o is not None:
+        o = getter_last_step(o, keys[-1])
+        
+        if (empty_list_as_none or list_of_len_one_as_value) and isinstance(o, list) and len(o) <= 1:
+            if empty_list_as_none and len(o) == 0:
+                o = None
+            elif list_of_len_one_as_value and len(o) == 1:
+                o = o[0]
     
     return o
 
 
-def deep_set(o, k, v, accessor: callable = None, getter: callable = None, setter: callable = None, sep: str = '.'):
+def deep_set(o, k, v, accessor: callable = lambda o, k: o.setdefault(k, dict()) if hasattr(o, "setdefault") else o[k],
+             getter: callable = None, setter: callable = None, sep: str = '.'):
     keys = __keys(k, sep)
     getter = __getter(getter, accessor)
     setter = __setter(setter)
     
     for i in range(len(keys) - 1):
+        if o is None:
+            return 0
         o = getter(o, keys[i])
     
-    setter(o, keys[-1], v)
+    return setter(o, keys[-1], v)
 
 
-def deep_del(o: dict, k, accessor: callable = None, deleter: callable = None, sep: str = '.'):
+def deep_del(o: dict, k, accessor: callable = lambda o, k: o.get(k) if hasattr(o, "get") else o[k],
+             getter: callable = None, deleter: callable = None, sep: str = '.'):
     keys = __keys(k, sep)
-    accessor = accessor if accessor is not None else lambda o, k: o.get(k)
+    getter = __getter(getter, accessor)
+    deleter = __deleter(deleter)
     
     for i in range(len(keys) - 1):
         if o is None:
-            return False, None
-        o = accessor(o, keys[i])
+            return 0
+        o = getter(o, keys[i])
     
-    if o is not None and isinstance(o, dict) and keys[-1] in o:
-        retval = accessor(o, keys[-1])
-        if deleter is None:
-            del o[keys[-1]]
-        else:
-            deleter(o, keys[-1])
-        return True, retval
-    else:
-        return False, None
+    return deleter(o, keys[-1])
 
 
 def __keys(key, sep: str):
@@ -56,34 +60,60 @@ def __keys(key, sep: str):
 
 
 def __getter(getter: callable, accessor: callable):
-    if getter is not None:
-        return getter
-    if accessor is None:
-        accessor = lambda o, k: o[k]
-    
     def __default_getter(o, k):
         if isinstance(o, list):
-            if isinstance(k, str) and not k.isdigit():
-                r = []
-                for i in o:
-                    r.append(accessor(i, k))
-                return r
-            elif isinstance(k, str) and k.isdigit():
-                k = int(k)
-                return accessor(o, k)
-        return accessor(o, k)
+            return [accessor(i, k) for i in o]
+        else:
+            return accessor(o, k)
     
-    return __default_getter
+    return __default_getter if getter is None else getter
+
+
+def __getter_last_step(getter_last_step: callable, getter: callable):
+    def __default_getter_last_step(o, k):
+        if isinstance(o, list) and isinstance(k, list):
+            return [{item_k: getter(item_o, item_k) for item_k in k} for item_o in o if item_o is not None]
+        elif isinstance(k, list):
+            return {item_k: getter(o, item_k) for item_k in k}
+        else:
+            return getter(o, k)
+    
+    return __default_getter_last_step if getter_last_step is None else getter_last_step
 
 
 def __setter(setter: callable):
     def __default_setter(o, k, v):
-        if isinstance(o, list) and not k.isdigit():
+        n_set = 0
+        if isinstance(o, list):
             for i in o:
-                o[k] = v
-        elif isinstance(o, list) and k.isdigit():
-            k = int(k)
-        o[k] = v
+                i[k] = v
+                n_set += 1
+            return n_set
+        else:
+            o[k] = v
+            return 1
 
     return setter if setter is not None else __default_setter
 
+
+def __deleter(deleter: callable):
+    def __default_deleter(o, k):
+        n_del = 0
+        if isinstance(o, list):
+            for i in o:
+                try:
+                    del i[k]
+                except:
+                    pass
+                else:
+                    n_del += 1
+        else:
+            try:
+                del o[k]
+            except:
+                pass
+            else:
+                n_del += 1
+        return n_del
+
+    return deleter if deleter is not None else __default_deleter
