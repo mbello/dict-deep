@@ -85,8 +85,10 @@ in this case you pass an accessor only to deep_get or deep_set which could be, s
   if the last key is a list of keys, it returns a dict {k[0]: o[k[0]], k[1]: o[k[1]]}. If the last object is a list, it returns a list
   of dicts [{k[0]: o[0][k[0]]], k[1]: o[0][k[1]]}, {k[0]: o[1][k[0]]], k[1]: o[1][k[1]]}, ...]
 - sep: optional, string: by default it is a dot '.', you can use anything the string function split will accept
+- empty_list_as_none: bool = False. If true and the return value would be an empty list, returns None instead.
+- list_of_len_one_as_value: bool = False. If true and the return value would be a list with a single item, returns the item instead
 
-Returns o[k]
+Returns o[k]. If o[k] does not exist, should return None (but depends on the callables used).
 
 
 *deep_set* accepts:
@@ -185,4 +187,9 @@ i += 1
 keys = ['students', 'gender']
 deep_del(o, keys)
 print("{}: {}".format(i, o))
+
+# 11
+i += 1
+keys = ['director', 'name']
+print("{}: {}".format(i, deep_get(o, keys)))
 ```
