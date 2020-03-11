@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "dict-deep"
-version = "4.1.0"
+version = "4.1.1"
 authors = ["mbello <mbello@users.noreply.github.com>"]
 description = "Very simple deep_set and deep_get functions to access nested dicts (or any object) using 'dotted strings' as key."
-license = "CC0-1.0"
+license = "MIT"
 readme = "README.md"
 repository = "https://github.com/mbello/dict-deep"
 homepage = "https://github.com/mbello/dict-deep"
@@ -12,6 +12,9 @@ keywords = ['dict dotted keys', 'deep dict access', 'nested dict access', 'deep_
 
 [tool.poetry.dependencies]
 python = "^3.5"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
 
 [build-system]
 requires = ["poetry>=1.0.0"]
