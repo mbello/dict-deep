@@ -8,9 +8,8 @@ def deep_get(o, k, accessor: callable = lambda o, k: o.get(k) if hasattr(o, "get
     getter_last_step = __getter_last_step(getter_last_step, getter)
     
     for i in range(len(keys) - 1):
-        if o is None:
-            return 0
-        o = getter(o, keys[i])
+        if o is not None:
+            o = getter(o, keys[i])
 
     if o is not None:
         o = getter_last_step(o, keys[-1])
